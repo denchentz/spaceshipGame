@@ -4,8 +4,6 @@ import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
 import javafx.scene.image.Image;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
@@ -16,16 +14,14 @@ import java.util.Random;
 
 public class SpaceShipGame extends Application {
 
-    private static final int WIDTH = 600;
-    private static final int HEIGHT = 500;
-    private static final int LANE_HEIGHT = 200;
+    private static final int WIDTH = 700;
+    private static final int HEIGHT = 600;
     private static final int SHIP_WIDTH = 50;
     private static final int SHIP_HEIGHT = 70;
     private static final int OBSTACLE_WIDTH = 50;
     private static final int OBSTACLE_HEIGHT = 50;
     private static final int OBSTACLE_SPEED = 4;
     private static final int OBSTACLE_DECISION_INTERVAL = 1000; // in milliseconds
-    private static final int NUM_LANES = 10; // Number of lanes
 
     private Image backgroundImage;
     private Image spaceshipImage;
@@ -35,10 +31,10 @@ public class SpaceShipGame extends Application {
     private GraphicsContext gc;
     private int shipX = WIDTH / 2 - SHIP_WIDTH / 2;
     private int shipY = HEIGHT - SHIP_HEIGHT - 10;
-    private int lane = 1; // 0: A, 1: B, 2: C
     private List<Obstacle> verticalObstacles = new ArrayList<>();
     private List<Obstacle> horizontalObstacles = new ArrayList<>();
     private boolean gameOver = false;
+    private long startTime;
 
     private QuadTree quadTree;
 
@@ -72,16 +68,6 @@ public class SpaceShipGame extends Application {
             }
         });
 
-        Button restartButton = new Button("Restart");
-        restartButton.setOnAction(e -> {
-            restartGame();
-            restartButton.setVisible(false);
-        });
-
-        root.getChildren().add(restartButton);
-        restartButton.setTranslateY(HEIGHT / 2);
-        restartButton.setVisible(false);
-
         primaryStage.setScene(scene);
         primaryStage.setTitle("SpaceShip Game");
         primaryStage.show();
@@ -90,6 +76,7 @@ public class SpaceShipGame extends Application {
     }
 
     private void startGame() {
+        startTime = System.currentTimeMillis();
         new Thread(() -> {
             Random random = new Random();
             while (!gameOver) {
@@ -179,39 +166,17 @@ public class SpaceShipGame extends Application {
         }
     }
 
-    private void restartGame() {
-        shipX = WIDTH / 2 - SHIP_WIDTH / 2;
-        shipY = HEIGHT - SHIP_HEIGHT - 10;
-        lane = 1;
-        verticalObstacles.clear();
-        horizontalObstacles.clear();
-        gameOver = false;
-    }
-
     private void showGameOverAlert() {
+        long survivalTime = (System.currentTimeMillis() - startTime) / 1000;
         Platform.runLater(() -> {
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Game Over");
+            alert.setTitle("Game Over!!!");
             alert.setHeaderText(null);
-            alert.setContentText("You crashed! Game over.");
+            alert.setContentText("You survived for " + survivalTime + " seconds.");
 
-            Button restartButton = new Button("Restart");
-            restartButton.setOnAction(e -> {
-                restartGame();
-                alert.close();
-            });
+            alert.setOnHidden(e -> Platform.exit());
 
-            alert.getDialogPane().getButtonTypes().clear();
-            alert.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-            alert.getDialogPane().setExpandableContent(restartButton);
-
-            Stage stage = (Stage) alert.getDialogPane().getScene().getWindow();
-            stage.setOnCloseRequest(event -> {
-                restartGame();
-                alert.close();
-            });
-
-            alert.showAndWait();
+            alert.show();
         });
     }
 

@@ -155,21 +155,16 @@ public class SpaceShipGame extends Application {
         List<Obstacle> allObstacles = new ArrayList<>(verticalObstacles);
         allObstacles.addAll(horizontalObstacles);
 
-        // 清空QuadTree
         quadTree.clear();
 
-        // 将所有障碍物插入QuadTree
         for (Obstacle obstacle : allObstacles) {
             quadTree.insert(obstacle);
         }
 
-        // 创建一个范围为飞船的矩形
         QuadTree.Rectangle shipRect = new QuadTree.Rectangle(shipX, shipY, SHIP_WIDTH, SHIP_HEIGHT);
 
-        // 查询与飞船矩形相交的所有障碍物
         List<QuadTree.Comparable> collidingObstacles = quadTree.query(shipRect);
 
-        // 检查是否有碰撞
         for (QuadTree.Comparable comparable : collidingObstacles) {
             Obstacle obstacle = (Obstacle) comparable;
             if (shipX < obstacle.getX() + OBSTACLE_WIDTH &&

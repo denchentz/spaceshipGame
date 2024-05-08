@@ -154,8 +154,23 @@ public class SpaceShipGame extends Application {
     private void checkCollisions() {
         List<Obstacle> allObstacles = new ArrayList<>(verticalObstacles);
         allObstacles.addAll(horizontalObstacles);
-
+    
+        // 清空QuadTree
+        quadTree.clear();
+    
+        // 将所有障碍物插入QuadTree
         for (Obstacle obstacle : allObstacles) {
+            quadTree.insert(obstacle);
+        }
+    
+        // 创建一个范围为飞船的矩形
+        Rectangle shipRect = new Rectangle(shipX, shipY, SHIP_WIDTH, SHIP_HEIGHT);
+    
+        // 查询与飞船矩形相交的所有障碍物
+        List<Obstacle> collidingObstacles = quadTree.query(shipRect);
+    
+        // 检查是否有碰撞
+        for (Obstacle obstacle : collidingObstacles) {
             if (shipX < obstacle.getX() + OBSTACLE_WIDTH &&
                     shipX + SHIP_WIDTH > obstacle.getX() &&
                     shipY < obstacle.getY() + OBSTACLE_HEIGHT &&
@@ -218,14 +233,14 @@ public class SpaceShipGame extends Application {
 
     private static class Rectangle {
         private int x, y, width, height;
-
+    
         public Rectangle(int x, int y, int width, int height) {
             this.x = x;
             this.y = y;
             this.width = width;
             this.height = height;
         }
-
+    
         public boolean intersects(Rectangle other) {
             return this.x < other.x + other.width &&
                     this.x + this.width > other.x &&
@@ -233,7 +248,6 @@ public class SpaceShipGame extends Application {
                     this.y + this.height > other.y;
         }
     }
-
     private static class QuadTree {
         private static final int MAX_OBJECTS = 10;
         private static final int MAX_LEVELS = 5;

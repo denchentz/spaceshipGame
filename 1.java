@@ -48,7 +48,7 @@ public class SpaceShipGame extends Application {
         StackPane root = new StackPane();
         root.getChildren().add(canvas);
 
-        quadTree = new QuadTree(0, new Rectangle(0, 0, WIDTH, HEIGHT));
+        quadTree = new QuadTree(0, new QuadTree.Rectangle(0, 0, WIDTH, HEIGHT));
 
         Scene scene = new Scene(root, WIDTH, HEIGHT);
         scene.setOnKeyPressed(e -> {
@@ -154,23 +154,24 @@ public class SpaceShipGame extends Application {
     private void checkCollisions() {
         List<Obstacle> allObstacles = new ArrayList<>(verticalObstacles);
         allObstacles.addAll(horizontalObstacles);
-    
+
         // 清空QuadTree
         quadTree.clear();
-    
+
         // 将所有障碍物插入QuadTree
         for (Obstacle obstacle : allObstacles) {
             quadTree.insert(obstacle);
         }
-    
+
         // 创建一个范围为飞船的矩形
-        Rectangle shipRect = new Rectangle(shipX, shipY, SHIP_WIDTH, SHIP_HEIGHT);
-    
+        QuadTree.Rectangle shipRect = new QuadTree.Rectangle(shipX, shipY, SHIP_WIDTH, SHIP_HEIGHT);
+
         // 查询与飞船矩形相交的所有障碍物
-        List<Obstacle> collidingObstacles = quadTree.query(shipRect);
-    
+        List<QuadTree.Comparable> collidingObstacles = quadTree.query(shipRect);
+
         // 检查是否有碰撞
-        for (Obstacle obstacle : collidingObstacles) {
+        for (QuadTree.Comparable comparable : collidingObstacles) {
+            Obstacle obstacle = (Obstacle) comparable;
             if (shipX < obstacle.getX() + OBSTACLE_WIDTH &&
                     shipX + SHIP_WIDTH > obstacle.getX() &&
                     shipY < obstacle.getY() + OBSTACLE_HEIGHT &&
@@ -199,7 +200,7 @@ public class SpaceShipGame extends Application {
         launch(args);
     }
 
-    private static class Obstacle {
+    private static class Obstacle implements QuadTree.Comparable {
         private int x;
         private int y;
         private boolean isHorizontal;
@@ -229,31 +230,19 @@ public class SpaceShipGame extends Application {
         public boolean isHorizontal() {
             return isHorizontal;
         }
+
+        @Override
+        public QuadTree.Rectangle getBoundingBox() {
+            return new QuadTree.Rectangle(x, y, OBSTACLE_WIDTH, OBSTACLE_HEIGHT);
+        }
     }
 
-    private static class Rectangle {
-        private int x, y, width, height;
-    
-        public Rectangle(int x, int y, int width, int height) {
-            this.x = x;
-            this.y = y;
-            this.width = width;
-            this.height = height;
-        }
-    
-        public boolean intersects(Rectangle other) {
-            return this.x < other.x + other.width &&
-                    this.x + this.width > other.x &&
-                    this.y < other.y + other.height &&
-                    this.y + this.height > other.y;
-        }
-    }
     private static class QuadTree {
         private static final int MAX_OBJECTS = 10;
         private static final int MAX_LEVELS = 5;
 
         private int level;
-        private List<Obstacle> objects;
+        private List<Comparable> objects;
         private Rectangle bounds;
         private QuadTree[] nodes;
 
@@ -287,21 +276,22 @@ public class SpaceShipGame extends Application {
             nodes[3] = new QuadTree(level + 1, new Rectangle(x + subWidth, y + subHeight, subWidth, subHeight));
         }
 
-        private int getIndex(Obstacle obstacle) {
+        private int getIndex(Comparable comparable) {
+            Rectangle range = comparable.getBoundingBox();
             int index = -1;
             double verticalMidpoint = this.bounds.x + (this.bounds.width / 2);
             double horizontalMidpoint = this.bounds.y + (this.bounds.height / 2);
 
-            boolean topQuadrant = (obstacle.getY() < horizontalMidpoint && obstacle.getY() + OBSTACLE_HEIGHT < horizontalMidpoint);
-            boolean bottomQuadrant = (obstacle.getY() > horizontalMidpoint);
+            boolean topQuadrant = (range.y < horizontalMidpoint && range.y + range.height < horizontalMidpoint);
+            boolean bottomQuadrant = (range.y > horizontalMidpoint);
 
-            if (obstacle.getX() < verticalMidpoint && obstacle.getX() + OBSTACLE_WIDTH < verticalMidpoint) {
+            if (range.x < verticalMidpoint && range.x + range.width < verticalMidpoint) {
                 if (topQuadrant) {
                     index = 1;
                 } else if (bottomQuadrant) {
                     index = 2;
                 }
-            } else if (obstacle.getX() > verticalMidpoint) {
+            } else if (range.x > verticalMidpoint) {
                 if (topQuadrant) {
                     index = 0;
                 } else if (bottomQuadrant) {
@@ -312,18 +302,18 @@ public class SpaceShipGame extends Application {
             return index;
         }
 
-        public void insert(Obstacle obstacle) {
+        public void insert(Comparable comparable) {
             if (nodes[0] != null) {
-                int index = getIndex(obstacle);
+                int index = getIndex(comparable);
 
                 if (index != -1) {
-                    nodes[index].insert(obstacle);
+                    nodes[index].insert(comparable);
 
                     return;
                 }
             }
 
-            objects.add(obstacle);
+            objects.add(comparable);
 
             if (objects.size() > MAX_OBJECTS && level < MAX_LEVELS) {
                 if (nodes[0] == null) {
@@ -342,13 +332,13 @@ public class SpaceShipGame extends Application {
             }
         }
 
-        public List<Obstacle> query(Rectangle range) {
-            List<Obstacle> result = new ArrayList<>();
+        public List<Comparable> query(Rectangle range) {
+            List<Comparable> result = new ArrayList<>();
             query(range, result);
             return result;
         }
 
-        private void query(Rectangle range, List<Obstacle> found) {
+        private void query(Rectangle range, List<Comparable> found) {
             int index = getIndex(range);
             if (index != -1 && nodes[0] != null) {
                 nodes[index].query(range, found);
@@ -388,15 +378,37 @@ public class SpaceShipGame extends Application {
             return index;
         }
 
-        public void remove(Obstacle obstacle) {
+        public void remove(Comparable comparable) {
             if (nodes[0] != null) {
-                int index = getIndex(obstacle);
+                int index = getIndex(comparable);
                 if (index != -1) {
-                    nodes[index].remove(obstacle);
+                    nodes[index].remove(comparable);
                     return;
                 }
             }
-            objects.remove(obstacle);
+            objects.remove(comparable);
+        }
+
+        private static class Rectangle {
+            private int x, y, width, height;
+
+            public Rectangle(int x, int y, int width, int height) {
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = height;
+            }
+
+            public boolean intersects(Rectangle other) {
+                return this.x < other.x + other.width &&
+                        this.x + this.width > other.x &&
+                        this.y < other.y + other.height &&
+                        this.y + this.height > other.y;
+            }
+        }
+
+        public interface Comparable {
+            QuadTree.Rectangle getBoundingBox();
         }
     }
 }

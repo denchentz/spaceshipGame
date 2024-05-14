@@ -46,10 +46,14 @@ public class QuadTree {
         int x = (int)bounds.getX();
         int y = (int)bounds.getY();
 
-        nodes[0] = new QuadTree(level+1, new Rectangle(x + subWidth, y, subWidth, subHeight));
-        nodes[1] = new QuadTree(level+1, new Rectangle(x, y, subWidth, subHeight));
-        nodes[2] = new QuadTree(level+1, new Rectangle(x, y + subHeight, subWidth, subHeight));
-        nodes[3] = new QuadTree(level+1, new Rectangle(x + subWidth, y + subHeight, subWidth, subHeight));
+        nodes[0] = new QuadTree(level+1, 
+                                new Rectangle(x + subWidth, y, subWidth, subHeight));
+        nodes[1] = new QuadTree(level+1, 
+                                new Rectangle(x, y, subWidth, subHeight));
+        nodes[2] = new QuadTree(level+1, 
+                                new Rectangle(x, y + subHeight, subWidth, subHeight));
+        nodes[3] = new QuadTree(level+1, 
+                                new Rectangle(x + subWidth, y + subHeight, subWidth, subHeight));
     }
 
     /**
@@ -93,22 +97,30 @@ public class QuadTree {
      * objects to their corresponding nodes. 
      */
     public void insert(GameObject object) {
+        // Determines whether the node has any child nodes and tries 
+        // to add the object there.
         if (this.nodes[0] != null) {
             int index = getIndex(object);
 
+            // If there are no child nodes or the object doesn’t fit in a child
+            // node, it adds the object to the parent node.
             if (index != -1) {
                 this.nodes[index].insert(object);
                 return;
             }
         }
-
         this.objects.add(object);
 
+        // Determines whether the node needs to split by checking if the current
+        // number of objects exceeds the max allowed objects.
         if (this.objects.size() > MAX_OBJECTS && this.level < MAX_LEVELS) {
+            // 
             if (this.nodes[0] == null) {
                 this.split();
             }
 
+            // Insert any object that can fit in a child node to be added to the
+            // child node to added to the child node.
             int i = 0;
             while (i < this.objects.size()) {
                 int index = getIndex(this.objects.get(i));
@@ -122,14 +134,16 @@ public class QuadTree {
     }
 
     /** 
-     * Return all objects that could collide with the given object 
+     * Return all objects that could  potentially collide with the given object 
      */
     public List<GameObject> retrieve(List<GameObject> returnObjects, GameObject object) {
+        // Find which quadant the given object is
         int index = getIndex(object);
         if (index != -1 && this.nodes[0] != null) {
+            // Use recursive to go through all the levels
             this.nodes[index].retrieve(returnObjects, object);
         }
-
+        // Return all the object in the matched quadant
         returnObjects.addAll(this.objects);
         return returnObjects;
     }

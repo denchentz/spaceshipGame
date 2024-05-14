@@ -129,13 +129,6 @@ public class Game extends JPanel implements ActionListener, KeyListener {
         }      
     }
 
-    boolean collision(GameObject a, GameObject b) {
-        return a.x < b.x + b.width &&   //a's top left corner doesn't reach b's top right corner
-               a.x + a.width > b.x &&   //a's top right corner passes b's top left corner
-               a.y < b.y + b.height &&  //a's top left corner doesn't reach b's bottom left corner
-               a.y + a.height > b.y;    //a's bottom left corner passes b's top left corner
-    }
-
     //called every x milliseconds by gameLoop timer
     @Override
     public void actionPerformed(ActionEvent e) {
@@ -146,13 +139,25 @@ public class Game extends JPanel implements ActionListener, KeyListener {
         }
 
         move();
+
         score += 1; // add score every frame
         repaint();
         if (gameOver) {
             spawnAsteriodTimer.stop();
             gameLoop.stop();
         }
-    }  
+    }
+
+    boolean collision(GameObject a, GameObject b) {
+        return a.x < b.x + b.width &&   
+               //a's top left corner doesn't reach b's top right corner
+               a.x + a.width > b.x &&   
+               //a's top right corner passes b's top left corner
+               a.y < b.y + b.height &&  
+               //a's top left corner doesn't reach b's bottom left corner
+               a.y + a.height > b.y;    
+               //a's bottom left corner passes b's top left corner
+    }
 
     @Override
     public void keyPressed(KeyEvent e) {
@@ -185,6 +190,7 @@ public class Game extends JPanel implements ActionListener, KeyListener {
                     rocket.x = boardWidth - rocket.width;
                 }
             }
+            // Press P to pause
             if (e.getKeyCode() == KeyEvent.VK_P){
                 if (gameLoop.isRunning()) {
                     gameLoop.stop();
